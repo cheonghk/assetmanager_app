@@ -50,7 +50,8 @@ class MyApp extends StatelessWidget {
 
 class MainPage extends StatefulWidget {
   final String title;
-  MainPage({Key key, @required this.title}) : super(key: key);
+  final int countAllItemsScanned;
+  MainPage({Key key, @required this.title, @required this.countAllItemsScanned}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -66,15 +67,15 @@ class MainPage extends StatefulWidget {
 
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainPageState extends State<MainPage> with WidgetsBindingObserver{
   List<String> itemId = [];
   List<String> location = [];
-  List allItems = [];
+  //List<dynamic> _allItems = [];
   bool permissionGranted = false;
   String _filePath;
   bool _isStart = false;
   List<List<dynamic>> _rows = [];
-
+  var _countAllItemsScanned;
   final _biggerFont = TextStyle(fontSize: 18.0);
   String test;
   List<List> _viewList = [];
@@ -82,18 +83,25 @@ class _MainPageState extends State<MainPage> {
   Map<String, dynamic> _mp = new Map();
   @override
   void initState() {
+
     // TODO: implement initState
     super.initState();
-    _getStoragePermission();
+    WidgetsBinding.instance.addObserver(this);
+    _getStoragePermissionAndReadFile();
+    _getCountAllItemsScanned();
+    if(widget.countAllItemsScanned!=null){
+    this._countAllItemsScanned = widget.countAllItemsScanned;}
     //readExcelFile('fixed assets.xlsx');
+  }
 
-
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+    WidgetsBinding.instance.removeObserver(this);
   }
 
 
-
-
-  @override
   Widget _buildList() {
 
     return ListView.separated(
@@ -118,10 +126,19 @@ class _MainPageState extends State<MainPage> {
                               fontWeight: FontWeight.bold,
                               color: Colors.black
                           ),),),
+                      /*trailing: Container(
+                        child: Text("總數 : "+ _countAllItemsScanned.toString() + "/"+_rows.length.toString(),
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black
+                          )
+                      ),
 
-                    ),
+                    ),*/
                   ),
-                ]
+                ),
+          ]
             );
           }
           return _buildRow(_mp.keys.elementAt(i), maniValue(_mp.values.elementAt(i).toString()));
@@ -138,7 +155,7 @@ class _MainPageState extends State<MainPage> {
         key.toString(),
         style: _biggerFont,
       ),
-      onTap: () => Navigator.push(this.context, MaterialPageRoute(builder: (context) => SecondPage(categorisedList :mappedList, allItems: allItems, filePath:this._filePath, rows:this._rows))),
+      onTap: () => Navigator.push(this.context, MaterialPageRoute(builder: (context) => SecondPage(categorisedList :mappedList, filePath:this._filePath, rows:this._rows))),
     );
   }
 
@@ -153,7 +170,7 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Future _getStoragePermission() async {
+  Future _getStoragePermissionAndReadFile() async {
     if (await Permission.storage.request().isGranted) {
       readMobileFile(await _localFile);
       //readFileFromApp('fixed assets.xlsx');
@@ -161,6 +178,18 @@ class _MainPageState extends State<MainPage> {
         permissionGranted = true;
       });
     }
+  }
+
+  void _getCountAllItemsScanned() {
+    int count=0;
+    _rows.forEach((e) {
+      if (e[13].toString().compareTo("O") == 0) {
+        count++;
+      }
+    });
+setState(() {
+  this._countAllItemsScanned = count;
+});
   }
 
 //mobile "Download" folder
@@ -192,8 +221,8 @@ class _MainPageState extends State<MainPage> {
     final extStoragePath = await _extStorage;
     final origFileName = MyApp.FILE_NAME;
     final editedFileName = MyApp.FILE_NAME_EDITED;
-   //bool ifFileExist = await File('$extStoragePath/$editedFileName').exists();//for newer version
-    bool ifFileExist = await File('$dlFolderPath/$editedFileName').exists();
+   bool ifFileExist = await File('$extStoragePath/$editedFileName').exists();//for newer version
+    //bool ifFileExist = await File('$dlFolderPath/$editedFileName').exists();
     if(ifFileExist){
       path = extStoragePath;
       fileName = editedFileName;
@@ -212,189 +241,10 @@ class _MainPageState extends State<MainPage> {
     return _filePath;
   }
 
-
-/*
-  void readExcelFile(String fileName) async {
-    ByteData data = await rootBundle.load("assets/$fileName");
-    var bytes = data.buffer.asUint8List(
-        data.offsetInBytes, data.lengthInBytes);
-    var excel = Excel.decodeBytes(bytes);
-
-    int duplicateCount = 0;
-    int countB = 0;
-    Map<String, dynamic> mp = new Map();
-    final itemPair = <String, dynamic>{};
-    List<dynamic> rowList = [];
-    List<List<dynamic>> rowsList = [];
-    for (var table in excel.tables.keys) {
-
-
-
-        for (var i =0; i < excel.tables[table].rows.length;i++) {
-          //if(i<22) {//column size
-//i[0] == itemId, i[2] == itemName, i[3] == Location
-
-          rowList.add(excel.tables[table].rows[i]);
-
-         // print(rowList[i].toString() + " " + i.toString());
-         // print(rowList[j]);
-
-          //j++;
-
-
-          //if (j > 2) { //content start from i 3
-          // if (i[0] == null || i[0] == "")
-          //   break;
-          // };
-          //final item = Item(i[0], i[2], i[3]).toJson();
-
-          //if(mp.containsKey(i[3])){
-          //  duplicateCount++;
-
-          //   dynamic tempItem = mp[i[3]];
-
-          //   mp.update(i[3], (value) => '$tempItem'+','+'$item');
-          //  }else{
-          //    countB++;
-
-          //    mp.putIfAbsent(i[3], ()=> Item(i[0], i[2], i[3]).toJson());}
-
-
-       // }
-
-          //rowsList.add(rowList);
-         // print("rowsList" +rowsList[i].toString() +"   ");
-      }
-
-    }
-    //print("last test  " + rowList[50][3].toString());
-   // print("rowsList "+rowsList.length.toString());
-    //print("duplicateCount  "+duplicateCount.toString());
-    //print(countB);
-     //handleList(rowList);
-  }
-*/
-
-  /*
-  void handleList(List list){
-    List aList = list.map((e) => e).toList();
-    List bList = list.map((e) => e).toList();
-
-    List<List<List<dynamic>>> newList = [];
-    //newList.add(list[2]);//start from index 2
-   // tempList.add(list[2]);
-   // int i=0;
-
-
-    //print("newList[0][0] " + newList[0][0].toString());
-    //newList[0].add("test");
-   // print("newList[0][1] " + newList[0][1].toString());
-
-   // int length = list.length;
-    int length = 57;
-  int firstRow = 2;
-int index =2;
-
-
-    for(var i = index; i< length;i++) {//i 2 already added
-      List<List<dynamic>> tempList = [];
-     // int j = 0;
-
-      if(isStart){list[13] = "";}
-      tempList.addAll([list[i]]);
-      if(index==i){
-        newList.add(tempList);
-      }
-      //print(newList);
-      for(var j = i+1; j< length;j++) {
-        if(isStart){aList[j][13] = "";}
-
-        print("i " +i.toString()+" j " +j.toString());
-      //  print(l2[1]);
-        if (aList[i][3].toString().compareTo(bList[j][3].toString())==0){
-
-          print("duplicateeee "+aList[i][3].toString()+"   "+ bList[j][3].toString());
-          //tempList.addAll(aList[j]);
-          print("i  "+i.toString()+"   " + newList.length.toString());
-
-
-          for(var k = 0; k<newList.length;k++) {
-            for (var l = 0; l < newList[k].length; l++) {
-              if (newList[k][l][3].toString().compareTo(
-                  aList[i][3].toString()) == 0){
-
-
-                tempList.addAll([aList[j]]);
-                newList[k].add(tempList);}
-            }
-          }
-          bList[j][3] = "del";
-          //if(j==length-1){
-
-            //print("j "+j.toString());
-
-         // newList.insert(i-2, list[i]);
-          //newList[i-2].addAll(tempList);
-
-          //print(newList[newList.length-1]);
-         // continue;
-          // }
-        }else {
-          if (i == firstRow){
-            print("normal");
-          print(newList.length);
-
-          bool ifExist = false;
-
-          for(var i = 0;i<newList.length;i++){
-            for(var j = 0;j<newList[i].length;j++) {
-              // print("listttttt  2 " + newList[i][3].toString() +"   " +bList[j][3].toString());
-              if (newList[i][j][3].toString() == bList[j][3].toString()) {
-                ifExist = true;
-                print("ifExist " + ifExist.toString());
-              }
-            }
-          }
-            // tempList.addAll(list);
-          // newList
-            if(!ifExist){
-
-              tempList.addAll([aList[j]]);
-          newList.add(tempList);
-            }
-          //print(list[j].toString());
-          //continue;
-          //newList.insert(newList.length, tempList);
-        }
-        }
-     //   j++;
-
-     }
-
-      //i++;
-    }
-
-
-    print(newList.length.toString());
-    for(var i = 0;i<newList.length;i++){
-      print(i.toString()+"   " +newList.toString());
-    }
-    setState(() {
-      this._orginList.addAll(list);
-      this._viewList.addAll(newList);
-    });
-  }*/
-
-  /*
-  void readFileFromApp(String fileName)async{
-    ByteData data = await rootBundle.load("assets/$fileName");
-    readByteData(data, this._filePath);
-  }*/
-
   void readMobileFile(String fileName)async{
     File(fileName).openRead().listen((list) {
-      ByteData data = Uint8List.fromList(list).buffer.asByteData(); // do something with 'data'
-      readByteData(data, this._filePath);
+      //ByteData data = Uint8List.fromList(list).buffer.asByteData(); // do something with 'data'
+      readByteData(this._filePath);
     });
   }
 
@@ -411,6 +261,9 @@ int index =2;
 
           for(var j = 0;j<row.length;j++){
             if(j==13 && i>1){
+              row[j] = "";
+            }
+            if(row[j]== null){
               row[j] = "";
             }
           storeRow.add(row[j]);}
@@ -434,16 +287,18 @@ int index =2;
     String csv = const ListToCsvConverter().convert(rows);
 
     //excel.encode().then((onValue) {
-    File(join(myPath))..createSync(recursive: true)..writeAsStringSync(csv);
+
+    File(join(myPath))..writeAsStringSync(csv);
    // });
 
     return excel;
   }
 
-  Future<void> readByteData(ByteData data, String filePath) async{
+  Future<void> readByteData(String filePath) async{
     Excel excel;
     Map<String, dynamic> mp = new Map();
-    List allItems = [];
+    List<List<dynamic>> tempRows =[];
+    //List allItems = [];
     if(this._isStart) {
       print('main - isStart  ' + this._isStart.toString());
       excel = await initExcel(this._filePath);
@@ -457,7 +312,7 @@ int index =2;
           try {
 //row[0] == itemId, row[2] == itemName, row[3] == Location
 
-            if (j > 2) {
+            if (j > 0) {
               if (_isStart) {
                 row[13] = "X";
               }
@@ -467,9 +322,9 @@ int index =2;
                 break;
 
               var char = 'X';
-              if (row[13].toString().compareTo('ü') == 0) {
+              if (row[13].toString().compareTo('O') == 0) {
                 char = 'O';
-              };
+              }
 
               final item = Item(row[0], row[2], row[3], char).toJson();
 
@@ -486,7 +341,7 @@ int index =2;
                     row[3], () => Item(row[0], row[2], row[3], char).toJson());
               }
             }
-            allItems.add(row[j]);
+          //  allItems.add(row[j]);
           } catch (Exception) {
 
           }
@@ -495,52 +350,50 @@ int index =2;
       }
     }
     else{
-
       final input = new File(filePath).openRead();
       final fields = await input.transform(utf8.decoder).transform(new CsvToListConverter()).toList();
-
       int j = 0;
       for (var row in fields) {
+        tempRows.add(row);
           try {
 //row[0] == itemId, row[2] == itemName, row[3] == Location
 
-            if (j > 2 ) {
-              if(row[0].toString().compareTo(null)==0 || row[0].toString().length<1){
-                print(row[0]);
-                break;
-              }
+            if (j > 0 && row[3]!=null && row[0]!=null && row[3]!='null' && row[0]!='null') {
+
+
 
               var char = 'X';
-              if (row[13].toString().compareTo('ü') == 0) {
+              if (row[13].toString().compareTo('O') == 0) {
                 char = 'O';
               }
 
               final item = Item(row[0], row[2], row[3], char).toJson();
 
               if (mp.containsKey(row[3])) {
-
                 dynamic tempItem = mp[row[3]];
-
                 mp.update(row[3], (value) => '$tempItem' + ',' + '$item');
               } else {
-
-
                 mp.putIfAbsent(
                     row[3], () => Item(row[0], row[2], row[3], char).toJson());
               }
+
             }
-            allItems.add(row[j]);
+          //  allItems.add(row[j]);
           } catch (Exception) {
 
           }
           j++;
-
       }
+
+      setState(() {
+        this._rows = tempRows;
+      });
     }
+
 
       setState(() {
         this._mp = mp;
-        this.allItems = allItems;
+       // this._allItems = allItems;
       });
     }
 

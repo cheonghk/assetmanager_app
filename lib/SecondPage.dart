@@ -16,14 +16,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:excel/excel.dart';
 import 'package:path/path.dart';
 import 'package:csv/csv.dart';
+import 'package:back_button_interceptor/back_button_interceptor.dart';
 
 class SecondPage extends StatefulWidget {
 
   final List<Item> categorisedList;
-final List allItems;
 final String filePath;
   List<List<dynamic>> rows = [];
-  SecondPage({Key key, @required this.categorisedList,  @required this.allItems, @required this.filePath, @required this.rows}) : super(key: key);
+  SecondPage({Key key, @required this.categorisedList, @required this.filePath, @required this.rows}) : super(key: key);
 
   // final dynamic content;
   //SecondPage({Key key, @required this.content}) : super(key: key);
@@ -44,10 +44,12 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver{
   void initState() {
     // TODO: implement initState
     super.initState();
+    BackButtonInterceptor.add(myInterceptor);
     //convertDynamicToJson(widget.content);
     this._categorisedList = widget.categorisedList;
     this._filePath = widget.filePath;
     this._rows = widget.rows;
+
     //this._resultList = widget.allItems;
     WidgetsBinding.instance.addObserver(this);
     initItemScanned();
@@ -62,14 +64,22 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver{
     // TODO: implement dispose
   //  WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+    BackButtonInterceptor.remove(myInterceptor);
+  }
+
+  bool myInterceptor(bool stopDefaultButtonEvent, RouteInfo info) {
+   writeCSV();
+   MainPage(countAllItemsScanned: _countAllItemsScanned);
+    print("BACK BUTTON!"); // Do some stuff.
+    return false;
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // TODO: implement didChangeAppLifecycleState
     super.didChangeAppLifecycleState(state);
-    if(state == AppLifecycleState.paused){
-      updateExcel(this._categorisedList, this._filePath, this._rows);
+    if(state == AppLifecycleState.paused || state == AppLifecycleState.detached){
+      writeCSV();
     }
   }
 
@@ -167,7 +177,8 @@ class _SecondPageState extends State<SecondPage> with WidgetsBindingObserver{
             ),
           ]
       );
-    }return itemList();
+    }
+    return itemList();
   }
 
   ),
@@ -259,12 +270,12 @@ void checkBarcodeAndUpdateList(String barcode){
       this._countAllItemsScanned = 0;
     _rows.forEach((e) {
       _categorisedList.forEach((e2) {if(e2.itemId.compareTo(e[0].toString())==0 && e2.status.compareTo("O")==0){
-          e[13] = "ü";
+          e[13] = "O";
 
         }});
       });
       _rows.forEach((e) {
-        if(e[13].toString().compareTo("ü") ==0) {
+        if(e[13].toString().compareTo("O") ==0) {
         this._countAllItemsScanned++;}
     });
 
@@ -333,32 +344,9 @@ void checkBarcodeAndUpdateList(String barcode){
      // writeByteData(data);
     });
   }
-/*
-  void initExcel(String filePath){
-    print('initExcel');
-    var bytes = File(filePath).readAsBytesSync();
-    var excel = Excel.decodeBytes(bytes);
 
-    for (var table in excel.tables.keys) {
-      // print(table); //sheet Name
-      //print(excel.tables[table].maxCols);
-      // print(excel.tables[table].maxRows);
-      int i=0;
-      for (var row in excel.tables[table].rows) {
-        if(i>1) {
-          excel.updateCell(
-              '工作表1', CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: i),
-              "");
-        }
-        i++;
-      }
-      }
-    setState(() {
-      this._excel = excel;
-    });
-    }*/
 
-  void updateExcel(List<Item> list, String filePath, List<List<dynamic>> rows) async {
+  void writeCSV() async {
 
     List<List<dynamic>> rows = [];
     rows = this._rows;
@@ -370,8 +358,6 @@ void checkBarcodeAndUpdateList(String barcode){
 
     //var excel = Excel.createExcel();
     //var sheet = excel['工作表1'];
-
-
 
 /*
     rows.forEach((element) {
@@ -399,9 +385,6 @@ void checkBarcodeAndUpdateList(String barcode){
       }
     }
 
-
-
-
     for (var table in excel.tables.keys) {
       // print(table); //sheet Name
       //print(excel.tables[table].maxCols);
@@ -412,9 +395,6 @@ void checkBarcodeAndUpdateList(String barcode){
       }
     }
 
-    */
-
-/*
     for (int row = 0; row < sheet.maxRows; row++) {
       sheet.row(row).forEach((cell) {
         if (cell.colIndex == 0) {
@@ -441,30 +421,25 @@ void checkBarcodeAndUpdateList(String barcode){
     String appDocPath = await ExtStorage.getExternalStoragePublicDirectory(
         ExtStorage.DIRECTORY_DOWNLOADS);//storage/emulated/0/Download/..
 
-
     var appDocPath2 = (await getExternalStorageDirectory()).path;
 
 
     String myPath = appDocPath2+"/"+MyApp.FILE_NAME_EDITED;
-    print("Saved file to : " +myPath);
+    print("Saved file to (2) : " +myPath);
 
+    print(rows.length);
     String csv = const ListToCsvConverter().convert(rows);
 
     //excel.encode().then((onValue) {
 
-      File(join(myPath))..createSync(recursive: true)..writeAsStringSync(csv);
 
-
+    File(join(myPath))..writeAsString(csv);
 
      // excel.encode().then((onValue) {
     //    File(join(myPath))..createSync(recursive: true)..writeAsBytesSync(onValue);
     //  });
 
   }
-
-
-
-
 }
 
 
