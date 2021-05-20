@@ -318,7 +318,7 @@ setState(() {
               }
 
 
-              if (row[0] == null || row[0] == "")
+              if (row[0] == null || row[0] == "" || row[0].toString().length==0)
                 break;
 
               var char = 'X';
@@ -340,6 +340,7 @@ setState(() {
                 mp.putIfAbsent(
                     row[3], () => Item(row[0], row[2], row[3], char).toJson());
               }
+
             }
           //  allItems.add(row[j]);
           } catch (Exception) {
@@ -358,9 +359,10 @@ setState(() {
           try {
 //row[0] == itemId, row[2] == itemName, row[3] == Location
 
-            if (j > 0 && row[3]!=null && row[0]!=null && row[3]!='null' && row[0]!='null') {
+            if (j > 0) {
 
-
+              if (row[0] == null || row[0] == "" || row[0].toString().length==0)
+                break;
 
               var char = 'X';
               if (row[13].toString().compareTo('O') == 0) {
